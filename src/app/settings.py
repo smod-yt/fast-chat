@@ -3,6 +3,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     version: str = "0.0.1"
 
+    POSTGRES_USER:     str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB:       str
+    POSTGRES_HOST:     str = "localhost"
+    POSTGRES_PORT:     str = 5432
+
+    REDIS_PORT:        str = 6379
+    REDIS_PASSWORD:    str
+
+    @property
+    def POSTGRES_URL(self) -> str:
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
     model_config = SettingsConfigDict(
         env_prefix="",
         env_file=".env",
