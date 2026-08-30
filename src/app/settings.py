@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     REDIS_PORT:        str = 6379
     REDIS_PASSWORD:    str
 
+    FIRST_ADMIN_DEFAULT_NAME:      str = "Admin"
+    FIRST_ADMIN_DEFAULT_USER_NAME: str = "admin"
+    FIRST_ADMIN_DEFAULT_PASSWORD:  str
+
     @property
     def POSTGRES_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
@@ -20,7 +24,7 @@ class Settings(BaseSettings):
         env_prefix="",
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="allow"
+        extra="forbid"
     )
 
 settings = Settings()

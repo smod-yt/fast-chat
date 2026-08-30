@@ -22,6 +22,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 from sqlmodel import SQLModel
 from src.app.models import *
+from src.app.settings import settings
 target_metadata = SQLModel.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -29,6 +30,7 @@ target_metadata = SQLModel.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+config.set_main_option("sqlalchemy.url", settings.POSTGRES_URL)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
