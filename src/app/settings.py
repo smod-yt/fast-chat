@@ -9,12 +9,22 @@ class Settings(BaseSettings):
     POSTGRES_HOST:     str = "localhost"
     POSTGRES_PORT:     str = 5432
 
+    REDIS_HOST:        str = "localhost"
     REDIS_PORT:        str = 6379
     REDIS_PASSWORD:    str
 
     FIRST_ADMIN_DEFAULT_NAME:      str = "Admin"
     FIRST_ADMIN_DEFAULT_USER_NAME: str = "admin"
     FIRST_ADMIN_DEFAULT_PASSWORD:  str
+
+    HTTPS: bool = False # Set to True in production
+
+    JWT_TOKEN_KEY:         str
+    JWT_EXPIRES_TIME:      int = 60*10
+    JWT_ALGORITHM: str = "HS256"
+
+    REFRESH_TOKEN_KEY:     str
+    REFRESH_EXPIRES_TIME:  int = 3600*24*7
 
     @property
     def POSTGRES_URL(self) -> str:

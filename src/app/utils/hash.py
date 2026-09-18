@@ -1,5 +1,19 @@
 import asyncio
 import bcrypt
+import secrets
+import hashlib
+import hmac
+import jwt
+from jwt import ExpiredSignatureError, InvalidSignatureError, InvalidTokenError, DecodeError
+from src.app.utils.exceptions import JWTExpired, InvalidJWTSignature, InvalidJWT, JWTDecodeError
+from datetime import datetime, timezone, timedelta
+from src.app.settings import settings
+
+JWT_TOKEN_KEY     = settings.JWT_TOKEN_KEY
+JWT_EXPIRES_TIME  = settings.JWT_EXPIRES_TIME
+JWT_ALGORITHM     = settings.JWT_ALGORITHM
+
+REFRESH_TOKEN_KEY = settings.REFRESH_TOKEN_KEY
 
 async def hash_password(password: str) -> str:
     salt = await asyncio.to_thread(bcrypt.gensalt)
@@ -17,3 +31,47 @@ async def check_password(password: str, hashed_password: str) -> bool:
         password.encode("utf-8"),
         hashed_password.encode("utf-8")
     )
+
+def generate_refresh_token() -> tuple[str, str]:
+    raw_token = secrets.token_urlsafe(48)
+
+    hashed_token = hash_refresh_token(raw_token)
+
+    return raw_token, hashed_token
+
+def hash_refresh_token(raw_token: str) -> str:
+    return hmac.new(
+        key=raw_token.encode("utf-8"),
+        msg=REFRESH_TOKEN_KEY.encode("utf-8"),
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+def generate_jwt_token(user_id: int) -> str:
+    expires_time = datetime.now(timezone.utc) + timedelta(seconds=JWT_EXPIRES_TIME)
+
+    return jwt.encode(
+        payload={
+            "sub": str(user_id),
+            "exp": expires_time
+        },
+        key=JWT_TOKEN_KEY,
+        algorithm=JWT_ALGORITHM
+    )
+
+def get_user_id_from_jwt(token: str) -> int:
+    try:
+        payload = jwt.decode(
+            jwt=token,
+            key=JWT_TOKEN_KEY,
+            algorithms=[JWT_ALGORITHM]
+        )
+    except ExpiredSignatureError:
+        raise JWTExpired
+    except InvalidSignatureError:
+        raise InvalidJWTSignature
+    except InvalidTokenError:
+        raise InvalidJWT
+    except DecodeError:
+        raise JWTDecodeError
+
+    return int(payload["sub"])

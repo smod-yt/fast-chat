@@ -2,9 +2,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from loguru import logger
+import redis.asyncio as aioredis
 from src.app.settings import settings
 from src.app.db import AsyncSessionLocal
-from src.app.utils.exceptions import BaseAppException
+from src.app.utils.exceptions import BaseAppException, add_db_exception_handlers
 from src.app.routes import register_routes
 from src.app.utils.logger import startup_logger
 from src.app.repositories.user_repository import create_first_admin_if_not_exists
@@ -16,7 +17,21 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as session:
         await create_first_admin_if_not_exists(session)
 
+    app.state.redis = aioredis.Redis(
+        host=settings.REDIS_HOST,
+        port=settings.REDIS_PORT,
+        password=settings.REDIS_PASSWORD,
+        encoding="utf-8",
+        decode_responses=True,
+        socket_connect_timeout=2.0,
+        socket_timeout=2.0,
+        retry_on_timeout=False,
+        retry=None
+    )
+
     yield
+
+    await app.state.redis.close()
 
 app = FastAPI(
     lifespan=lifespan,
@@ -40,6 +55,8 @@ async def app_exception_handler(request: Request, exc: BaseAppException):
             }
         }
     )
+
+add_db_exception_handlers(app)
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
