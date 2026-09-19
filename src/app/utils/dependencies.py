@@ -8,9 +8,14 @@ from src.app.db import AsyncSessionDep
 from src.app.models import User
 from src.app.models.user_model import UserRoles
 from src.app.utils import hash
-from src.app.utils.exceptions import Forbidden, RefreshTokenNotGranted, UserNotFound
+from src.app.utils.exceptions import (
+    Forbidden,
+    JWTNotGranted,
+    RefreshTokenNotGranted,
+    UserNotFound,
+)
 
-security_scheme = HTTPBearer()
+security_scheme = HTTPBearer(auto_error=False)
 
 
 async def get_redis(request: Request) -> aioredis.Redis:
@@ -32,6 +37,8 @@ async def get_refresh_token(request: Request) -> str:
 async def get_user_id_from_jwt(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
 ) -> int:
+    if credentials is None:
+        raise JWTNotGranted
     access_token = credentials.credentials
 
     return hash.get_user_id_from_jwt(access_token)

@@ -75,6 +75,12 @@ class Forbidden(BaseAppException):
     default_message = "You don't have permission to perform this action"
 
 
+class JWTNotGranted(BaseAppException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    error_code = "JWT_NOT_GRANTED"
+    default_message = "JWT not granted"
+
+
 class InvalidCredentials(BaseAppException):
     status_code = status.HTTP_401_UNAUTHORIZED
     error_code = "INVALID_CREDENTIALS"
