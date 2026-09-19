@@ -1,22 +1,26 @@
-from sqlmodel import SQLModel, Field, Column
-from sqlalchemy import Enum as SQLEnum
 from enum import Enum
 
+from sqlalchemy import Enum as SQLEnum
+from sqlmodel import Column, Field, SQLModel
+
+
 class UserRoles(str, Enum):
-    USER  = "user"
+    USER = "user"
     ADMIN = "admin"
+
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
-    id: int | None  = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
 
-    name: str       = Field(min_length=1, max_length=32)
-    user_name: str  = Field(unique=True, min_length=3, max_length=16, regex=r"^[a-z0-9_-]+$")
+    name: str = Field(min_length=1, max_length=32)
+    user_name: str = Field(
+        unique=True, min_length=3, max_length=16, regex=r"^[a-z0-9_-]+$"
+    )
 
-    role: UserRoles = Field(sa_column=Column(
-        SQLEnum(UserRoles),
-        default=UserRoles.USER,
-        nullable=False
-    ))
-    password: str   = Field(max_length=60)
+    role: UserRoles = Field(
+        sa_column=Column(SQLEnum(UserRoles), default=UserRoles.USER, nullable=False)
+    )
+
+    password: str = Field(max_length=60)
