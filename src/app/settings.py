@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     FIRST_ADMIN_DEFAULT_PASSWORD: str
 
     HTTPS: bool = False  # Set to True in production
+    CORS_ALLOWED_ORIGINS: list[str]
 
     JWT_TOKEN_KEY: str
     JWT_EXPIRES_TIME: int = 60 * 10
