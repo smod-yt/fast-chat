@@ -4,6 +4,8 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from loguru import logger
 from redis.exceptions import RedisError
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import InterfaceError, OperationalError
 
 from src.app.utils.exceptions import BaseAppException
@@ -33,6 +35,22 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(BaseAppException)
     async def app_exception_handler(request: Request, exc: BaseAppException):
         return error_response(exc.status_code, exc.error_code, exc.message, exc.details)
+
+    @app.exception_handler(RateLimitExceeded)
+    async def rate_limit_exceeded(request: Request, exc: RateLimitExceeded):
+        response = _rate_limit_exceeded_handler(request, exc)
+        retry_after = response.headers.get("Retry-After", 0)
+
+        return error_response(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "RATE_LIMIT_EXCEEDED",
+            "Too many requests",
+            details={
+                "limit": exc.detail,
+                "retry_after": int(retry_after),
+            },
+            headers={"Retry-After": str(retry_after)},
+        )
 
     @app.exception_handler(RedisError)
     async def redis_unavailable_error(request: Request, exc: Exception):

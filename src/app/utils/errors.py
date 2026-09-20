@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import status
 
 from src.app.utils.exceptions import (
@@ -32,6 +34,31 @@ def error_response(
     }
 
 
+def custom_error_response(
+    status_code: status,
+    error_code: str,
+    description: str | None = None,
+    message: str | None = None,
+    details: dict[str, Any] | None = None,
+):
+    return {
+        status_code: {
+            "description": description,
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": error_code,
+                            "message": message,
+                            "details": details or {},
+                        }
+                    }
+                }
+            },
+        }
+    }
+
+
 def errors_list(status_code: status, description: str, examples: dict) -> dict:
     return {
         status_code: {
@@ -57,6 +84,17 @@ def error_example(
         }
     }
 
+
+RATE_LIMIT_ERROR = custom_error_response(
+    status.HTTP_429_TOO_MANY_REQUESTS,
+    description="Rate Limit Error",
+    error_code="RATE_LIMIT_EXCEEDED",
+    message="Too many requests",
+    details={
+        "limit": "string",
+        "retry_after": 0,
+    },
+)
 
 JWT_ERRORS = {
     **error_example(JWTExpired, "JWT Expired Error"),

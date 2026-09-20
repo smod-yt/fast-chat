@@ -9,6 +9,7 @@ from src.app.db import AsyncSessionLocal
 from src.app.repositories.user_repository import create_first_admin_if_not_exists
 from src.app.routes import register_routes
 from src.app.settings import settings
+from src.app.utils import limiter
 from src.app.utils.exception_handlers import register_exception_handlers
 from src.app.utils.logger import startup_logger
 
@@ -38,6 +39,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, title="FastChat", version=settings.version)
+
+app.state.limiter = limiter
 
 app.add_middleware(
     CORSMiddleware,

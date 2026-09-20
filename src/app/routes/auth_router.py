@@ -9,9 +9,14 @@ from src.app.schemas.auth_schema import (
 )
 from src.app.services import auth_service
 from src.app.settings import settings
+from src.app.utils import limiter
 from src.app.utils.dependencies import RedisSessionDep, get_refresh_token
-from src.app.utils.errors import error_response
-from src.app.utils.exceptions import Conflict, InvalidCredentials, SessionExpired
+from src.app.utils.errors import RATE_LIMIT_ERROR, error_response
+from src.app.utils.exceptions import (
+    Conflict,
+    InvalidCredentials,
+    SessionExpired,
+)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -31,8 +36,9 @@ def set_refresh_cookie(response: Response, refresh_token: str):
     "/register",
     status_code=status.HTTP_201_CREATED,
     response_model=AuthResponse,
-    responses={**error_response(Conflict, "Conflict Error")},
+    responses={**RATE_LIMIT_ERROR, **error_response(Conflict, "Conflict Error")},
 )
+@limiter.limit("3/minute")
 async def register(
     session: AsyncSessionDep,
     response: Response,
@@ -57,8 +63,12 @@ async def register(
     "/login",
     status_code=status.HTTP_200_OK,
     response_model=AuthResponse,
-    responses={**error_response(InvalidCredentials, "Invalid Credentials Error")},
+    responses={
+        **RATE_LIMIT_ERROR,
+        **error_response(InvalidCredentials, "Invalid Credentials Error"),
+    },
 )
+@limiter.limit("5/minute")
 async def login(
     session: AsyncSessionDep,
     response: Response,
@@ -83,8 +93,12 @@ async def login(
     "/refresh",
     status_code=status.HTTP_200_OK,
     response_model=AccessTokenSchema,
-    responses={**error_response(SessionExpired, "Session Expired Error")},
+    responses={
+        **RATE_LIMIT_ERROR,
+        **error_response(SessionExpired, "Session Expired Error"),
+    },
 )
+@limiter.limit("3/minute")
 async def refresh(
     request: Request,
     response: Response,
