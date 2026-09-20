@@ -29,14 +29,17 @@ async def get_user_sessions(
 
 
 async def logout(redis: Redis, current_user: User, refresh_token: str) -> None:
-    session_data = await token_service.get_session_data(redis, refresh_token)
+    session_uuid = await token_repository.get_session_uuid_from_refresh(
+        redis, refresh_token
+    )
+    session_data = await token_service.get_session_data(redis, session_uuid)
     target_user_id = session_data["user_id"]
 
     user_service.check_user_access(
         current_user, target_user_id, "You can't log out from someone else's session"
     )
 
-    await token_service.delete_session(redis, refresh_token, target_user_id)
+    await token_service.delete_session(redis, session_uuid, target_user_id)
 
 
 async def revoke_session(redis: Redis, current_user: User, session_uuid: UUID) -> None:

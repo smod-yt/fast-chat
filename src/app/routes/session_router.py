@@ -77,6 +77,7 @@ async def get_sessions(
 @limiter.limit("5/minute")
 async def logout(
     request: Request,
+    response: Response,
     redis: RedisSessionDep,
     user: User = Depends(get_current_user),
     refresh_token: str = Depends(get_refresh_token),
