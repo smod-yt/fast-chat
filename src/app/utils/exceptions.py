@@ -1,10 +1,6 @@
 from typing import Any
 
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
-from loguru import logger
-from redis.exceptions import RedisError
-from sqlalchemy.exc import InterfaceError, OperationalError
+from fastapi import status
 
 
 class BaseAppException(Exception):
@@ -17,50 +13,6 @@ class BaseAppException(Exception):
     ):
         self.message = message or self.default_message
         self.details = details or {}
-
-
-def add_db_exception_handlers(app: FastAPI):
-    @app.exception_handler(RedisError)
-    async def redis_unavailable_error(request: Request, exc: Exception):
-        logger.exception(f"Redis unavailable {request.url.path}: {exc}")
-        return JSONResponse(
-            status_code=503,
-            content={
-                "error": {
-                    "code": "REDIS_UNAVAILABLE",
-                    "message": "Redis is temporarily unavailable",
-                    "details": {},
-                }
-            },
-        )
-
-    @app.exception_handler(OperationalError)
-    async def db_operational_error(request: Request, exc: Exception):
-        logger.exception(f"Database unavailable {request.url.path}: {exc}")
-        return JSONResponse(
-            status_code=503,
-            content={
-                "error": {
-                    "code": "DATABASE_UNAVAILABLE",
-                    "message": "Database is temporarily unavailable",
-                    "details": {},
-                }
-            },
-        )
-
-    @app.exception_handler(InterfaceError)
-    async def db_interface_error(request: Request, exc: Exception):
-        logger.exception(f"Database unavailable {request.url.path}: {exc}")
-        return JSONResponse(
-            status_code=503,
-            content={
-                "error": {
-                    "code": "DATABASE_UNAVAILABLE",
-                    "message": "Database is temporarily unavailable",
-                    "details": {},
-                }
-            },
-        )
 
 
 class Conflict(BaseAppException):

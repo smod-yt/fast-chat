@@ -1,16 +1,15 @@
 from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from loguru import logger
 
 from src.app.db import AsyncSessionLocal
 from src.app.repositories.user_repository import create_first_admin_if_not_exists
 from src.app.routes import register_routes
 from src.app.settings import settings
-from src.app.utils.exceptions import BaseAppException, add_db_exception_handlers
+from src.app.utils.exception_handlers import register_exception_handlers
 from src.app.utils.logger import startup_logger
 
 startup_logger()
@@ -52,34 +51,4 @@ register_routes(app)
 
 logger.info("Server successfully started")
 
-
-@app.exception_handler(BaseAppException)
-async def app_exception_handler(request: Request, exc: BaseAppException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "error": {
-                "code": exc.error_code,
-                "message": exc.message,
-                "details": exc.details,
-            }
-        },
-    )
-
-
-add_db_exception_handlers(app)
-
-
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.exception(f"Unhandled server error on {request.url.path}: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": {
-                "code": "INTERNAL_SERVER_ERROR",
-                "message": "Internal server Error",
-                "details": {},
-            }
-        },
-    )
+register_exception_handlers(app)
