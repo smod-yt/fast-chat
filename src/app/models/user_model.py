@@ -6,6 +6,7 @@ from sqlmodel import Column, Field, SQLModel
 
 class UserRoles(str, Enum):
     USER = ("user", 10)
+    MODERATOR = ("moderator", 30)
     ADMIN = ("admin", 50)
 
     weight: int
