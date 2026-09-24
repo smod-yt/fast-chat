@@ -5,8 +5,16 @@ from sqlmodel import Column, Field, SQLModel
 
 
 class UserRoles(str, Enum):
-    USER = "user"
-    ADMIN = "admin"
+    USER = ("user", 10)
+    ADMIN = ("admin", 50)
+
+    weight: int
+
+    def __new__(cls, value: str, weight: int):
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        obj.weight = weight
+        return obj
 
 
 class User(SQLModel, table=True):

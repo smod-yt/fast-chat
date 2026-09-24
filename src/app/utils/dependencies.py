@@ -57,7 +57,7 @@ async def get_current_user(
 
 def require_role(require_role: UserRoles) -> User:
     def role_check(user: User = Depends(get_current_user)):
-        if user.role != require_role:
+        if user.role.weight < require_role.weight:
             raise Forbidden("You don't have permissions for this action")
         return user
 
