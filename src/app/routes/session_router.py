@@ -106,13 +106,14 @@ async def logout_all(
     request: Request,
     response: Response,
     redis: RedisSessionDep,
+    refresh_token: str = Depends(get_refresh_token),
     user: User = Depends(get_current_user),
 ):
     """
     Invalidates all user sessions
     """
 
-    await session_service.logout_all(redis, user)
+    await session_service.logout_all(redis, refresh_token, user)
 
     return
 
@@ -138,14 +139,16 @@ async def logout_all(
 @limiter.limit("10/minute")
 async def revoke_session_by_uuid(
     request: Request,
+    response: Response,
     redis: RedisSessionDep,
     session_uuid: UUID,
+    refresh_token: str = Depends(get_refresh_token),
     user: User = Depends(get_current_user),
 ):
     """
     Invalidates a user session by UUID
     """
 
-    await session_service.revoke_session(redis, user, session_uuid)
+    await session_service.revoke_session(redis, user, refresh_token, session_uuid)
 
     return

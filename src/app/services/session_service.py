@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from redis.asyncio import Redis
@@ -7,6 +8,18 @@ from src.app.models import User
 from src.app.repositories import token_repository
 from src.app.schemas.auth_schema import SessionReadSchema
 from src.app.services import token_service, user_service
+from src.app.utils.exceptions import SessionRevocationTooEarly
+
+
+async def check_revoke_access(redis: Redis, current_session_uuid: UUID) -> None:
+    time_now = datetime.now()
+    session_data = await token_repository.get_session_data(redis, current_session_uuid)
+    target_time = datetime.fromtimestamp(int(session_data["created_at"])) + timedelta(
+        hours=24
+    )
+
+    if time_now < target_time:
+        raise SessionRevocationTooEarly
 
 
 async def get_user_sessions(
@@ -42,16 +55,30 @@ async def logout(redis: Redis, current_user: User, refresh_token: str) -> None:
     await token_service.delete_session(redis, session_uuid, target_user_id)
 
 
-async def revoke_session(redis: Redis, current_user: User, session_uuid: UUID) -> None:
+async def revoke_session(
+    redis: Redis, current_user: User, refresh_token: str, session_uuid: UUID
+) -> None:
     session_data = await token_service.get_session_data(redis, str(session_uuid))
     target_user_id = session_data["user_id"]
+
+    current_session_uuid = await token_repository.get_session_uuid_from_refresh(
+        redis, refresh_token
+    )
 
     user_service.check_user_access(
         current_user, target_user_id, "You cannot revoke someone else's session"
     )
 
+    await check_revoke_access(redis, current_session_uuid)
+
     await token_repository.delete_session(redis, session_uuid, current_user.id)
 
 
-async def logout_all(redis: Redis, current_user: User) -> None:
+async def logout_all(redis: Redis, refresh_token: str, current_user: User) -> None:
+    current_session_uuid = await token_repository.get_session_uuid_from_refresh(
+        redis, refresh_token
+    )
+
+    await check_revoke_access(redis, current_session_uuid)
+
     await token_repository.delete_all_user_sessions(redis, current_user.id)
