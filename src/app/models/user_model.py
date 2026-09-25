@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.dialects import postgresql
 from sqlmodel import Column, Field, SQLModel
 
 
@@ -29,7 +29,11 @@ class User(SQLModel, table=True):
     )
 
     role: UserRoles = Field(
-        sa_column=Column(SQLEnum(UserRoles), default=UserRoles.USER, nullable=False)
+        sa_column=Column(
+            postgresql.ENUM(UserRoles, name="userroles", create_type=False),
+            default=UserRoles.USER,
+            nullable=False,
+        )
     )
 
     password: str = Field(max_length=60)
