@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from enum import Enum
 
 from sqlalchemy.dialects import postgresql
@@ -28,6 +29,12 @@ class User(SQLModel, table=True):
         unique=True, min_length=3, max_length=16, regex=r"^[a-z0-9_-]+$"
     )
 
+    created_at: datetime = Field(
+        sa_column=Column(
+            postgresql.TIMESTAMP(timezone=True),
+            default=lambda: datetime.now(timezone.utc),
+        )
+    )
     role: UserRoles = Field(
         sa_column=Column(
             postgresql.ENUM(UserRoles, name="userroles", create_type=False),
