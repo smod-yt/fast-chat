@@ -23,7 +23,7 @@ async def check_revoke_access(redis: Redis, current_session_uuid: UUID) -> None:
 
 
 async def get_user_sessions(
-    redis: Redis, current_user: User, session_uuid: UUID
+    redis: Redis, current_user: User, current_session_uuid: UUID
 ) -> dict:
     raw_sessions = await token_repository.get_user_sessions(redis, current_user.id)
 
@@ -34,7 +34,7 @@ async def get_user_sessions(
             continue
 
         data = json.loads(raw_data)
-        data["is_current"] = session_uuid == str(session_uuid)
+        data["is_current"] = current_session_uuid == str(session_uuid)
 
         sessions[session_uuid] = SessionReadSchema.model_validate(data)
 
