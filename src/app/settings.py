@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,7 +35,10 @@ class Settings(BaseSettings):
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     model_config = SettingsConfigDict(
-        env_prefix="", env_file=".env", env_file_encoding="utf-8", extra="forbid"
+        env_prefix="",
+        env_file=os.getenv("ENV_FILE", ".env"),
+        env_file_encoding="utf-8",
+        extra="forbid",
     )
 
 
