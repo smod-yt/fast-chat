@@ -13,6 +13,8 @@ from sqlalchemy import text
 
 from src.app.db import AsyncSessionLocal
 from src.main import app
+from tests.factories import *
+from tests.fixtures import *
 
 BASE_DIR = Path(__file__).resolve().parent.parent / "src"
 
