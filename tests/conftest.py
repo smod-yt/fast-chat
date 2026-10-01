@@ -40,7 +40,9 @@ async def app_lifespan():
 async def client(app_lifespan):
     transport = ASGITransport(app)
 
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(
+        transport=transport, base_url="http://test/api/v1"
+    ) as client:
         yield client
 
 
