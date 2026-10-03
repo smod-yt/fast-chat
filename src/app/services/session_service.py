@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from redis.asyncio import Redis
@@ -12,11 +12,11 @@ from src.app.utils.exceptions import SessionRevocationTooEarly
 
 
 async def check_revoke_access(redis: Redis, current_session_uuid: UUID) -> None:
-    time_now = datetime.now()
+    time_now = datetime.now(timezone.utc)
     session_data = await token_repository.get_session_data(redis, current_session_uuid)
-    target_time = datetime.fromtimestamp(int(session_data["created_at"])) + timedelta(
-        hours=24
-    )
+    target_time = datetime.fromtimestamp(
+        int(session_data["created_at"]), tz=timezone.utc
+    ) + timedelta(hours=24)
 
     if time_now < target_time:
         raise SessionRevocationTooEarly
