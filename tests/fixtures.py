@@ -11,7 +11,7 @@ async def access_token(client: AsyncClient):
     user_name = faker.user_name()
 
     response = await client.post(
-        "/api/v1/auth/register",
+        "/auth/register",
         json={"name": name, "user_name": user_name, "password": "password"},
     )
     content = response.json()
@@ -27,7 +27,7 @@ async def refresh_token(client: AsyncClient):
     user_name = faker.user_name()
 
     response = await client.post(
-        "/api/v1/auth/register",
+        "/auth/register",
         json={"name": name, "user_name": user_name, "password": "password"},
     )
     content = response.json()
