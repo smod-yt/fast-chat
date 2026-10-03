@@ -102,7 +102,7 @@ async def test_login_success(client: AsyncClient, user_factory):
     assert login_access_token != None
 
 
-async def test_login_invalid_user_name(client: AsyncClient, user_factory):
+async def test_login_invalid_password(client: AsyncClient, user_factory):
     user_data, response = await user_factory(password="correct_password")
 
     login_response = await client.post(
@@ -115,7 +115,7 @@ async def test_login_invalid_user_name(client: AsyncClient, user_factory):
     assert login_response.status_code == 401
 
 
-async def test_login_invalid_password(client: AsyncClient, user_factory):
+async def test_login_invalid_user_name(client: AsyncClient, user_factory):
     user_pass = "correct_password"
     user_data, response = await user_factory(user_name="user_name", password=user_pass)
 
