@@ -6,6 +6,7 @@ from src.app.models import User
 from src.app.repositories import token_repository
 from src.app.schemas.auth_schema import SessionReadSchema
 from src.app.services import session_service
+from src.app.settings import settings
 from src.app.utils import limiter
 from src.app.utils.dependencies import (
     RedisSessionDep,
@@ -23,6 +24,16 @@ from src.app.utils.errors import (
 from src.app.utils.exceptions import Forbidden, SessionExpired, UserNotFound
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
+
+
+def delete_refresh_cookie(response: Response):
+    response.delete_cookie(
+        "refresh_token",
+        httponly=True,
+        secure=settings.HTTPS,
+        samesite="lax",
+    )
+
 
 
 @router.get(
@@ -87,6 +98,7 @@ async def logout(
     """
 
     await session_service.logout(redis, user, refresh_token)
+    delete_refresh_cookie(response)
 
     return
 
@@ -114,6 +126,7 @@ async def logout_all(
     """
 
     await session_service.logout_all(redis, refresh_token, user)
+    delete_refresh_cookie(response)
 
     return
 
