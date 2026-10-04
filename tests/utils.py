@@ -7,3 +7,7 @@ def validate_response(
     response_model: type[BaseModel],
 ) -> BaseModel:
     return response_model.model_validate(response.json())
+
+
+def auth_header(access_token: str) -> dict:
+    return {"Authorization": f"Bearer {access_token}"}
