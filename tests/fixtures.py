@@ -39,3 +39,13 @@ async def refresh_token(client: AsyncClient):
     assert response.status_code == 201
 
     return response.cookies.get("refresh_token")
+
+
+@pytest_asyncio.fixture
+async def other_user_session_uuid(refresh_token: str):
+    from src.app.repositories import token_repository
+    from src.main import app
+
+    return await token_repository.get_session_uuid_from_refresh(
+        app.state.redis, refresh_token
+    )
