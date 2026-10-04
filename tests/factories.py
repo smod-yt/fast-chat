@@ -16,8 +16,10 @@ async def user_factory(client: AsyncClient):
         user_name: str | None = None,
         password: str | None = "password",
     ) -> tuple[BaseModel, Response]:
-        name = name or faker.name()
-        user_name = user_name or faker.user_name()
+        name = (name or faker.name())[:32]
+        user_name = (user_name or faker.user_name().lower().replace(".", "_"))[:16]
+        if len(user_name) < 3:
+            user_name = f"user_{user_name}"
 
         payload = {"name": name, "user_name": user_name, "password": password}
 
