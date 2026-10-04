@@ -7,8 +7,10 @@ faker = Faker()
 
 @pytest_asyncio.fixture
 async def access_token(client: AsyncClient):
-    name = faker.name()
-    user_name = faker.user_name()
+    name = faker.name()[:32]
+    user_name = faker.user_name().lower().replace(".", "_")[:16]
+    if len(user_name) < 3:
+        user_name = f"user_{user_name}"
 
     response = await client.post(
         "/auth/register",
@@ -23,8 +25,10 @@ async def access_token(client: AsyncClient):
 
 @pytest_asyncio.fixture
 async def refresh_token(client: AsyncClient):
-    name = faker.name()
-    user_name = faker.user_name()
+    name = faker.name()[:32]
+    user_name = faker.user_name().lower().replace(".", "_")[:16]
+    if len(user_name) < 3:
+        user_name = f"user_{user_name}"
 
     response = await client.post(
         "/auth/register",
