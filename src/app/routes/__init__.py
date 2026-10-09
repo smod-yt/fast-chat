@@ -3,8 +3,9 @@ from loguru import logger
 
 from src.app.routes.auth_router import router as auth_router
 from src.app.routes.session_router import router as session_router
+from src.app.routes.user_router import router as user_router
 
-all_routes = [auth_router, session_router]
+all_routes = [auth_router, session_router, user_router]
 
 api_v1_router = APIRouter(prefix="/api/v1")
 

@@ -1,4 +1,5 @@
 from loguru import logger
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -6,7 +7,9 @@ from sqlmodel import select
 from src.app.models import User
 from src.app.models.user_model import UserRoles
 from src.app.settings import settings
+from src.app.utils.exceptions import Conflict
 from src.app.utils.hash import hash_password
+
 
 
 async def create_first_admin_if_not_exists(session: AsyncSession):
@@ -44,3 +47,79 @@ async def create_first_admin_if_not_exists(session: AsyncSession):
         logger.exception(
             f"An unexpected error occurred while creating the first admin: {e}"
         )
+
+
+async def get_users(
+    session: AsyncSession,
+    page: int = 1,
+    limit: int = 10,
+    name: str | None = None,
+    user_name: str | None = None,
+) -> tuple[list[User], int]:
+    conditions = []
+    if name:
+        conditions.append(User.name.ilike(f"%{name.strip()}%"))
+    if user_name:
+        conditions.append(User.user_name.ilike(f"%{user_name.strip()}%"))
+
+    count_stmt = select(func.count(User.id))
+    if conditions:
+        count_stmt = count_stmt.where(*conditions)
+    total = (await session.execute(count_stmt)).scalar_one()
+
+    stmt = select(User)
+    if conditions:
+        stmt = stmt.where(*conditions)
+    stmt = stmt.order_by(User.id).offset((page - 1) * limit).limit(limit)
+    result = await session.execute(stmt)
+    users = list(result.scalars().all())
+
+    return users, total
+
+
+async def get_user_by_id(session: AsyncSession, user_id: int) -> User | None:
+    return await session.get(User, user_id)
+
+
+async def get_user_by_user_name(session: AsyncSession, user_name: str) -> User | None:
+    query = await session.execute(select(User).where(User.user_name == user_name))
+    return query.scalar_one_or_none()
+
+
+async def update_user(
+    session: AsyncSession,
+    user: User,
+    name: str | None = None,
+    user_name: str | None = None,
+) -> User:
+    if name is not None:
+        user.name = name
+    if user_name is not None:
+        user.user_name = user_name
+
+    session.add(user)
+    try:
+        await session.commit()
+        await session.refresh(user)
+        return user
+    except IntegrityError:
+        await session.rollback()
+        raise Conflict(message="This user name is already taken")
+
+
+async def update_user_password(
+    session: AsyncSession,
+    user: User,
+    hashed_password: str,
+) -> User:
+    user.password = hashed_password
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def delete_user(session: AsyncSession, user: User) -> None:
+    await session.delete(user)
+    await session.commit()
+

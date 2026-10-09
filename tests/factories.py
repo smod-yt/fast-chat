@@ -41,3 +41,29 @@ async def user_factory(client: AsyncClient):
         return data, response
 
     return factory
+
+
+@pytest_asyncio.fixture
+async def admin_factory(client: AsyncClient, user_factory):
+    async def factory(
+        name: str | None = None,
+        user_name: str | None = None,
+        password: str | None = "adminpassword",
+    ) -> tuple[BaseModel, Response]:
+        from src.app.db import AsyncSessionLocal
+        from src.app.models import User
+        from src.app.models.user_model import UserRoles
+
+        data, response = await user_factory(
+            name=name, user_name=user_name, password=password
+        )
+        async with AsyncSessionLocal() as session:
+            user = await session.get(User, data.user.id)
+            user.role = UserRoles.ADMIN
+            session.add(user)
+            await session.commit()
+
+        return data, response
+
+    return factory
+
