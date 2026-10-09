@@ -197,7 +197,7 @@ async def test_logout_all_within_24h_forbidden(
         headers=auth_header(access_token),
     )
     assert resp_immediate.status_code == 403
-    assert resp_immediate.json()["error"]["code"] == "SESSION_REVOCATION_TOO_EARLY"
+    assert resp_immediate.json()["error"]["code"] == "SESSION_TOO_EARLY"
 
     freezer.tick(timedelta(hours=23))
     refresh_response = await client.post("/auth/refresh")
@@ -209,7 +209,7 @@ async def test_logout_all_within_24h_forbidden(
         headers=auth_header(access_token),
     )
     assert resp_23h.status_code == 403
-    assert resp_23h.json()["error"]["code"] == "SESSION_REVOCATION_TOO_EARLY"
+    assert resp_23h.json()["error"]["code"] == "SESSION_TOO_EARLY"
 
     sessions_response = await client.get(
         "/sessions/",
@@ -293,7 +293,7 @@ async def test_revoke_session_within_24h_forbidden(
         headers=auth_header(session1_access),
     )
     assert resp_immediate.status_code == 403
-    assert resp_immediate.json()["error"]["code"] == "SESSION_REVOCATION_TOO_EARLY"
+    assert resp_immediate.json()["error"]["code"] == "SESSION_TOO_EARLY"
 
     freezer.tick(timedelta(hours=23))
     refresh_response = await client.post("/auth/refresh")
@@ -305,7 +305,7 @@ async def test_revoke_session_within_24h_forbidden(
         headers=auth_header(access_token),
     )
     assert resp_23h.status_code == 403
-    assert resp_23h.json()["error"]["code"] == "SESSION_REVOCATION_TOO_EARLY"
+    assert resp_23h.json()["error"]["code"] == "SESSION_TOO_EARLY"
 
     sessions_check = await client.get(
         "/sessions/",

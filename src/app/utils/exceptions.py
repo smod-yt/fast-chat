@@ -81,9 +81,7 @@ class SessionExpired(BaseAppException):
     default_message = "Session not found or expired"
 
 
-class SessionRevocationTooEarly(BaseAppException):
+class SessionTooEarly(BaseAppException):
     status_code = status.HTTP_403_FORBIDDEN
-    error_code = "SESSION_REVOCATION_TOO_EARLY"
-    default_message = (
-        "A session cannot be revoked if less than 24 hours have passed since login"
-    )
+    error_code = "SESSION_TOO_EARLY"
+    default_message = "This action requires a session that is at least 24 hours old"

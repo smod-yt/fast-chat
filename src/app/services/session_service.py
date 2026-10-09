@@ -8,18 +8,26 @@ from src.app.models import User
 from src.app.repositories import token_repository
 from src.app.schemas.auth_schema import SessionReadSchema
 from src.app.services import token_service, user_service
-from src.app.utils.exceptions import SessionRevocationTooEarly
+from src.app.utils.exceptions import SessionTooEarly
 
 
-async def check_revoke_access(redis: Redis, current_session_uuid: UUID) -> None:
+async def check_session_age(
+    redis: Redis, current_session_uuid: UUID | str, min_age_hours: int = 24
+) -> None:
     time_now = datetime.now(timezone.utc)
-    session_data = await token_repository.get_session_data(redis, current_session_uuid)
+    session_data = await token_repository.get_session_data(
+        redis, str(current_session_uuid)
+    )
     target_time = datetime.fromtimestamp(
         int(session_data["created_at"]), tz=timezone.utc
-    ) + timedelta(hours=24)
+    ) + timedelta(hours=min_age_hours)
 
     if time_now < target_time:
-        raise SessionRevocationTooEarly
+        raise SessionTooEarly
+
+
+async def check_revoke_access(redis: Redis, current_session_uuid: UUID | str) -> None:
+    await check_session_age(redis, current_session_uuid)
 
 
 async def get_user_sessions(
@@ -69,7 +77,7 @@ async def revoke_session(
         current_user, target_user_id, "You cannot revoke someone else's session"
     )
 
-    await check_revoke_access(redis, current_session_uuid)
+    await check_session_age(redis, current_session_uuid)
 
     await token_repository.delete_session(redis, session_uuid, current_user.id)
 
@@ -79,6 +87,6 @@ async def logout_all(redis: Redis, refresh_token: str, current_user: User) -> No
         redis, refresh_token
     )
 
-    await check_revoke_access(redis, current_session_uuid)
+    await check_session_age(redis, current_session_uuid)
 
     await token_repository.delete_all_user_sessions(redis, current_user.id)
