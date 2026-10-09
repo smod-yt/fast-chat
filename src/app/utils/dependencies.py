@@ -7,6 +7,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.app.db import AsyncSessionDep
 from src.app.models import User
 from src.app.models.user_model import UserRoles
+from src.app.repositories import token_repository
+from src.app.services import session_service, user_service
 from src.app.utils import hash
 from src.app.utils.exceptions import (
     Forbidden,
@@ -14,6 +16,7 @@ from src.app.utils.exceptions import (
     RefreshTokenNotGranted,
     UserNotFound,
 )
+
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -62,3 +65,22 @@ def require_role(require_role: UserRoles) -> User:
         return user
 
     return role_check
+
+
+async def check_user_access(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+) -> User:
+    user_service.check_user_access(current_user, user_id)
+    return current_user
+
+
+async def check_session_age(
+    redis: RedisSessionDep,
+    refresh_token: str = Depends(get_refresh_token),
+) -> None:
+    session_uuid = await token_repository.get_session_uuid_from_refresh(
+        redis, refresh_token
+    )
+    await session_service.check_session_age(redis, session_uuid)
+
