@@ -12,6 +12,7 @@ ENV/
 .env.*
 !.env.example
 !.env.test
+!.env.dev
 
 .pytest_cache/
 .coverage
