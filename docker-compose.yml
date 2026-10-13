@@ -34,6 +34,11 @@ services:
       --requirepass "${REDIS_PASSWORD}"
       --appendonly yes
       --appendfsync everysec
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   migrate:
     build: .
@@ -69,6 +74,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
       geoip-updater:
         condition: service_completed_successfully
     networks:
