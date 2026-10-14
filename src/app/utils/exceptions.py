@@ -85,3 +85,16 @@ class SessionTooEarly(BaseAppException):
     status_code = status.HTTP_403_FORBIDDEN
     error_code = "SESSION_TOO_EARLY"
     default_message = "This action requires a session that is at least 24 hours old"
+
+
+class UserAlreadyBanned(Conflict):
+    status_code = status.HTTP_409_CONFLICT
+    error_code = "USER_ALREADY_BANNED"
+    default_message = "User is already banned"
+
+
+class UserBanned(Forbidden):
+    status_code = status.HTTP_403_FORBIDDEN
+    error_code = "USER_BANNED"
+    default_message = "User is banned"
+

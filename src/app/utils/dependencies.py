@@ -7,16 +7,16 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.app.db import AsyncSessionDep
 from src.app.models import User
 from src.app.models.user_model import UserRoles
-from src.app.repositories import token_repository
+from src.app.repositories import ban_repository, token_repository
 from src.app.services import session_service, user_service
 from src.app.utils import hash
 from src.app.utils.exceptions import (
     Forbidden,
     JWTNotGranted,
     RefreshTokenNotGranted,
+    UserBanned,
     UserNotFound,
 )
-
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -55,6 +55,18 @@ async def get_current_user(
     if user is None:
         raise UserNotFound("Current user not found")
 
+    active_ban = await ban_repository.get_active_ban(session, user.id)
+    if active_ban is not None:
+        raise UserBanned(
+            message="User is banned",
+            details={
+                "reason": active_ban.reason,
+                "expires_at": (
+                    active_ban.expires_at.isoformat() if active_ban.expires_at else None
+                ),
+            },
+        )
+
     return user
 
 
@@ -83,4 +95,3 @@ async def check_session_age(
         redis, refresh_token
     )
     await session_service.check_session_age(redis, session_uuid)
-
