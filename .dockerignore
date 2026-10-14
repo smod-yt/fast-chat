@@ -29,6 +29,7 @@ htmlcov/
 geoip/
 GeoLite2-City.mmdb
 
+logs/
 *.log
 *.tmp
 build/
