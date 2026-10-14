@@ -5,6 +5,8 @@ services:
     image: postgres:18-alpine
     container_name: dev_postgres
     restart: unless-stopped
+    env_file:
+      - .env.dev
     ports:
       - "${POSTGRES_PORT:-5430}:5432"
     volumes:
@@ -14,6 +16,8 @@ services:
     image: redis:8-alpine
     container_name: dev_redis
     restart: unless-stopped
+    env_file:
+      - .env.dev
     ports:
       - "${REDIS_PORT:-6377}:6379"
     volumes:
