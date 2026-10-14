@@ -28,6 +28,7 @@ htmlcov/
 
 *.db
 *.sqlite3
+geoip/
 GeoLite2-City.mmdb
 
 *.log
