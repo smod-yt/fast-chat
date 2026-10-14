@@ -57,11 +57,11 @@ services:
   geoip-updater:
     image: crazymax/geoip-updater:latest
     volumes:
-      - ./geoip:/app
+      - .:/data
     environment:
       - EDITION_IDS=GeoLite2-City
       - LICENSE_KEY=${MAXMIND_LICENSE_KEY}
-      - DOWNLOAD_PATH=/app
+      - DOWNLOAD_PATH=/data
       - LOG_LEVEL=info
 
   app:
@@ -86,7 +86,12 @@ services:
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./alembic.ini:/app/alembic.ini
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./requirements.txt:/app/requirements.txt
+      - ./GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb
 
 volumes:
   postgres_data:
