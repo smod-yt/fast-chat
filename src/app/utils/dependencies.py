@@ -3,6 +3,7 @@ from typing import Annotated
 import redis.asyncio as aioredis
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from loguru import logger
 
 from src.app.db import AsyncSessionDep
 from src.app.models import User
@@ -73,6 +74,9 @@ async def get_current_user(
 def require_role(require_role: UserRoles) -> User:
     def role_check(user: User = Depends(get_current_user)):
         if user.role.weight < require_role.weight:
+            logger.warning(
+                f"Access denied: user {user.id} ('{user.user_name}', role={user.role.value}) lacks required role {require_role.value}"
+            )
             raise Forbidden("You don't have permissions for this action")
         return user
 

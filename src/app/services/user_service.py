@@ -1,3 +1,4 @@
+from loguru import logger
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +19,10 @@ def check_user_access(
     if current_user.role.weight >= UserRoles.ADMIN.weight or current_user.id == target_user_id:
         return True
     else:
+        logger.warning(
+            f"Access denied: user {current_user.id} ('{current_user.user_name}') "
+            f"attempted to access user {target_user_id}"
+        )
         raise Forbidden(message=error_msg)
 
 
@@ -36,6 +41,7 @@ async def get_users(
 async def get_user_by_id(session: AsyncSession, user_id: int) -> User:
     user = await user_repository.get_user_by_id(session, user_id)
     if user is None:
+        logger.debug(f"User with id {user_id} not found")
         raise UserNotFound
     return user
 
@@ -55,11 +61,18 @@ async def update_user(
     if user_name is not None and user_name != user.user_name:
         existing = await user_repository.get_user_by_user_name(session, user_name)
         if existing is not None and existing.id != user.id:
+            logger.warning(
+                f"Failed to update user {user.id}: username '{user_name}' is already taken"
+            )
             raise Conflict(message="This user name is already taken")
 
-    return await user_repository.update_user(
+    updated_user = await user_repository.update_user(
         session, user, name=name, user_name=user_name
     )
+    logger.info(
+        f"User {user.id} profile updated: name='{updated_user.name}', user_name='{updated_user.user_name}'"
+    )
+    return updated_user
 
 
 async def update_user_password(
@@ -68,10 +81,16 @@ async def update_user_password(
     data: UserUpdatePasswordSchema,
 ) -> None:
     if not await hash.check_password(data.old_password, user.password):
+        logger.warning(
+            f"Password update failed for user {user.id} ('{user.user_name}'): invalid old password"
+        )
         raise InvalidCredentials(message="Incorrect old password")
 
+    user_id = user.id
+    user_name = user.user_name
     hashed_password = await hash.hash_password(data.new_password)
     await user_repository.update_user_password(session, user, hashed_password)
+    logger.info(f"Password successfully updated for user {user_id} ('{user_name}')")
 
 
 async def delete_user(
@@ -79,6 +98,9 @@ async def delete_user(
     redis: Redis,
     user: User,
 ) -> None:
-    await token_repository.delete_all_user_sessions(redis, user.id)
+    user_id = user.id
+    user_name = user.user_name
+    await token_repository.delete_all_user_sessions(redis, user_id)
     await user_repository.delete_user(session, user)
+    logger.info(f"User {user_id} ('{user_name}') deleted and all sessions invalidated")
 

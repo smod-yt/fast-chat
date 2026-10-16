@@ -104,6 +104,9 @@ async def update_user(
         return user
     except IntegrityError:
         await session.rollback()
+        logger.warning(
+            f"IntegrityError while updating user {user.id}: username '{user_name}' already taken"
+        )
         raise Conflict(message="This user name is already taken")
 
 
@@ -122,4 +125,5 @@ async def update_user_password(
 async def delete_user(session: AsyncSession, user: User) -> None:
     await session.delete(user)
     await session.commit()
+    logger.debug(f"User {user.id} deleted from database")
 
