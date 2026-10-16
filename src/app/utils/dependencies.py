@@ -58,6 +58,9 @@ async def get_current_user(
 
     active_ban = await ban_repository.get_active_ban(session, user.id)
     if active_ban is not None:
+        logger.warning(
+            f"Banned user {user.id} ('{user.user_name}') attempted to access API (ban reason: '{active_ban.reason}')"
+        )
         raise UserBanned(
             message="User is banned",
             details={

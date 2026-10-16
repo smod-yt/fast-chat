@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import or_, select
 
@@ -45,6 +46,9 @@ async def create_ban(
     session.add(ban)
     await session.commit()
     await session.refresh(ban)
+    logger.debug(
+        f"Ban record #{ban.id} created in DB for user {user_id} by admin {admin_id}"
+    )
     return ban
 
 
@@ -73,6 +77,7 @@ async def revoke_active_ban(session: AsyncSession, user_id: int) -> UserBan | No
     result = await session.execute(statement)
     active_bans = list(result.scalars().all())
     if not active_bans:
+        logger.debug(f"No active bans found in DB to revoke for user {user_id}")
         return None
 
     for ban in active_bans:
@@ -84,4 +89,7 @@ async def revoke_active_ban(session: AsyncSession, user_id: int) -> UserBan | No
     for ban in active_bans:
         await session.refresh(ban)
 
+    logger.debug(
+        f"Revoked {len(active_bans)} active ban record(s) in DB for user {user_id}"
+    )
     return active_bans[0]

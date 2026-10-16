@@ -120,5 +120,5 @@ async def unban_user(
     """
     Revokes an active ban for a user
     """
-    await ban_service.unban_user(session, user_id)
+    await ban_service.unban_user(session, user_id, admin=admin)
     return
