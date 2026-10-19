@@ -457,3 +457,76 @@ async def test_delete_user_by_admin_success(
         headers=auth_header(access_token),
     )
     assert get_user.status_code == 404
+
+
+async def test_admin_can_assign_user_role(client: AsyncClient, admin_factory, user_factory):
+    admin, _ = await admin_factory()
+    user, _ = await user_factory()
+
+    response = await client.patch(
+        f"/users/{user.user.id}/role",
+        headers=auth_header(admin.access_token),
+        json={"role": "moderator"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"id": user.user.id, "role": "moderator"}
+
+
+async def test_non_admin_cannot_assign_user_role(client: AsyncClient, user_factory):
+    actor, _ = await user_factory()
+    target, _ = await user_factory()
+
+    response = await client.patch(
+        f"/users/{target.user.id}/role",
+        headers=auth_header(actor.access_token),
+        json={"role": "admin"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "FORBIDDEN"
+
+
+async def test_admin_cannot_change_another_admin_role(
+    client: AsyncClient, admin_factory
+):
+    admin1, _ = await admin_factory()
+    admin2, _ = await admin_factory()
+
+    response = await client.patch(
+        f"/users/{admin2.user.id}/role",
+        headers=auth_header(admin1.access_token),
+        json={"role": "user"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["message"] == "You cannot modify another administrator"
+
+
+async def test_admin_cannot_update_or_delete_another_admin(
+    client: AsyncClient, admin_factory, freezer
+):
+    admin1, _ = await admin_factory(password="adminpass123")
+    admin2, _ = await admin_factory()
+    login = await client.post(
+        "/auth/login",
+        json={"user_name": admin1.user.user_name, "password": "adminpass123"},
+    )
+    assert login.status_code == 200
+
+    freezer.tick(timedelta(hours=25))
+    refreshed = await client.post("/auth/refresh")
+    access_token = validate_response(refreshed, AccessTokenSchema).access_token
+
+    profile_response = await client.patch(
+        f"/users/{admin2.user.id}",
+        headers=auth_header(access_token),
+        json={"name": "Changed Admin"},
+    )
+    assert profile_response.status_code == 403
+    assert profile_response.json()["error"]["message"] == "You cannot modify another administrator"
+
+    delete_response = await client.delete(
+        f"/users/{admin2.user.id}", headers=auth_header(access_token)
+    )
+    assert delete_response.status_code == 403
