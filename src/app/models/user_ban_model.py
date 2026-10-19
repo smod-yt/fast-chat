@@ -8,7 +8,9 @@ class UserBan(SQLModel, table=True):
     __tablename__ = "user_bans"
 
     id: int | None = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="users.id", nullable=False, ondelete="CASCADE")
+    user_id: int = Field(
+        foreign_key="users.id", nullable=False, ondelete="CASCADE", index=True
+    )
     admin_id: int = Field(foreign_key="users.id", nullable=False, ondelete="CASCADE")
     is_banned: bool = Field(default=True, nullable=False)
     reason: str = Field(nullable=False, min_length=1, max_length=255)
