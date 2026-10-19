@@ -53,8 +53,8 @@ def generate_refresh_token() -> tuple[str, str]:
 
 def hash_refresh_token(raw_token: str) -> str:
     return hmac.new(
-        key=raw_token.encode("utf-8"),
-        msg=REFRESH_TOKEN_KEY.encode("utf-8"),
+        key=REFRESH_TOKEN_KEY.encode("utf-8"),
+        msg=raw_token.encode("utf-8"),
         digestmod=hashlib.sha256,
     ).hexdigest()
 

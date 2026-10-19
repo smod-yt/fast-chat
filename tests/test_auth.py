@@ -76,6 +76,7 @@ async def test_register_duplicate_admin_conflict(client: AsyncClient):
         {"name": "Test", "user_name": "a" * 17, "password": "pass123"},
         {"name": "Test", "user_name": "Invalid_Caps", "password": "pass123"},
         {"name": "Test", "user_name": "user@name!", "password": "pass123"},
+        {"name": "Test", "user_name": "validname", "password": "short7"},
         {"name": "Test", "user_name": "юзернейм", "password": "pass123"},
         {"name": "Test", "user_name": "validname", "password": "a" * 61},
     ],
