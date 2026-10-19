@@ -1,11 +1,12 @@
 from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
+import geoip2.database
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from src.app.db import AsyncSessionLocal
+from src.app.db import AsyncSessionLocal, engine
 from src.app.repositories.user_repository import create_first_admin_if_not_exists
 from src.app.routes import register_routes
 from src.app.settings import settings
@@ -33,9 +34,23 @@ async def lifespan(app: FastAPI):
         retry=None,
     )
 
-    yield
+    try:
+        app.state.geoip_reader = geoip2.database.Reader("GeoLite2-City.mmdb")
+    except (FileNotFoundError, OSError) as error:
+        logger.warning(f"GeoIP database unavailable: {error}")
+        app.state.geoip_reader = None
 
-    await app.state.redis.close()
+    try:
+        yield
+    finally:
+        try:
+            if app.state.geoip_reader is not None:
+                app.state.geoip_reader.close()
+        finally:
+            try:
+                await app.state.redis.aclose()
+            finally:
+                await engine.dispose()
 
 
 app = FastAPI(lifespan=lifespan, title="FastChat", version=settings.version)

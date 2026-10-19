@@ -30,19 +30,18 @@ async def create_and_save_tokens(
     raw_user_agent = request.headers.get("User-Agent")
     user_agent = parse(raw_user_agent)
 
-    try:
-        with geoip2.database.Reader("GeoLite2-City.mmdb") as reader:
+    location = "Unknown"
+    reader: geoip2.database.Reader | None = getattr(
+        request.app.state, "geoip_reader", None
+    )
+    if reader is not None:
+        try:
             geoip_response = reader.city(ip)
             location = f"{geoip_response.country.name}, {geoip_response.city.name}"
-    except AddressNotFoundError:
-        logger.warning(f"Address {ip} not found in the GeoIP database")
-        location = "Unknown"
-    except GeoIP2Error as e:
-        logger.error(f"GeoIP library error: {e}")
-        location = "Unknown"
-    except FileNotFoundError as e:
-        logger.critical(f"GeoIP database file is missing: {e}")
-        location = "Unknown"
+        except AddressNotFoundError:
+            logger.warning(f"Address {ip} not found in the GeoIP database")
+        except GeoIP2Error as e:
+            logger.error(f"GeoIP library error: {e}")
 
     session_data = {
         "user_id": user_id,
