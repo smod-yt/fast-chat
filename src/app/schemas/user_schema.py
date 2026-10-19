@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from src.app.models.user_model import UserRoles
+
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -41,4 +43,15 @@ class UserUpdateSchema(BaseModel):
 class UserUpdatePasswordSchema(BaseModel):
     old_password: str = Field(min_length=1, max_length=60)
     new_password: str = Field(min_length=1, max_length=60)
+
+
+class UserRoleUpdateSchema(BaseModel):
+    role: UserRoles
+
+
+class UserRoleResponse(BaseModel):
+    id: int
+    role: UserRoles
+
+    model_config = ConfigDict(from_attributes=True)
 

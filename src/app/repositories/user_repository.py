@@ -122,6 +122,16 @@ async def update_user_password(
     return user
 
 
+async def update_user_role(
+    session: AsyncSession, user: User, role: UserRoles
+) -> User:
+    user.role = role
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
 async def delete_user(session: AsyncSession, user: User) -> None:
     await session.delete(user)
     await session.commit()

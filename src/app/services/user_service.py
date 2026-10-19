@@ -13,6 +13,14 @@ from src.app.utils import hash
 from src.app.utils.exceptions import Conflict, Forbidden, InvalidCredentials, UserNotFound
 
 
+def ensure_not_other_admin(actor: User, target: User) -> None:
+    if target.role == UserRoles.ADMIN and target.id != actor.id:
+        logger.warning(
+            f"Admin {actor.id} attempted to change protected admin {target.id}"
+        )
+        raise Forbidden("You cannot modify another administrator")
+
+
 def check_user_access(
     current_user: User, target_user_id: int, error_msg: str | None = None
 ) -> bool:
@@ -50,11 +58,25 @@ async def get_user_by_user_name(session: AsyncSession, user_name: str) -> User |
     return await user_repository.get_user_by_user_name(session, user_name)
 
 
+async def update_user_role(
+    session: AsyncSession, user: User, role: UserRoles, actor: User
+) -> User:
+    ensure_not_other_admin(actor, user)
+    actor_id = actor.id
+    user = await user_repository.update_user_role(session, user, role)
+    logger.info(
+        f"User {user.id} ('{user.user_name}') role changed to {role.value} by admin {actor_id}"
+    )
+    return user
+
+
 async def update_user(
     session: AsyncSession,
     user: User,
     data: UserUpdateSchema,
+    actor: User,
 ) -> User:
+    ensure_not_other_admin(actor, user)
     name = data.name.strip() if data.name is not None else None
     user_name = data.user_name.strip() if data.user_name is not None else None
 
@@ -79,7 +101,9 @@ async def update_user_password(
     session: AsyncSession,
     user: User,
     data: UserUpdatePasswordSchema,
+    actor: User,
 ) -> None:
+    ensure_not_other_admin(actor, user)
     if not await hash.check_password(data.old_password, user.password):
         logger.warning(
             f"Password update failed for user {user.id} ('{user.user_name}'): invalid old password"
@@ -97,7 +121,9 @@ async def delete_user(
     session: AsyncSession,
     redis: Redis,
     user: User,
+    actor: User,
 ) -> None:
+    ensure_not_other_admin(actor, user)
     user_id = user.id
     user_name = user.user_name
     await token_repository.delete_all_user_sessions(redis, user_id)

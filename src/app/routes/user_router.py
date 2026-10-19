@@ -2,9 +2,12 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from src.app.db import AsyncSessionDep
 from src.app.models import User
+from src.app.models.user_model import UserRoles
 from src.app.schemas.user_schema import (
     PaginatedUsersResponse,
     UserResponse,
+    UserRoleResponse,
+    UserRoleUpdateSchema,
     UserUpdatePasswordSchema,
     UserUpdateSchema,
 )
@@ -16,6 +19,7 @@ from src.app.utils.dependencies import (
     check_session_age,
     check_user_access,
     get_current_user,
+    require_role,
 )
 from src.app.utils.errors import (
     JWT_ERRORS,
@@ -143,7 +147,7 @@ async def update_user(
     Updates user profile (name and/or user_name)
     """
     user = await user_service.get_user_by_id(session, user_id)
-    updated_user = await user_service.update_user(session, user, data)
+    updated_user = await user_service.update_user(session, user, data, current_user)
     return updated_user
 
 
@@ -181,8 +185,36 @@ async def update_user_password(
     Updates user password
     """
     user = await user_service.get_user_by_id(session, user_id)
-    await user_service.update_user_password(session, user, data)
+    await user_service.update_user_password(session, user, data, current_user)
     return
+
+
+@router.patch(
+    "/{user_id}/role",
+    status_code=status.HTTP_200_OK,
+    response_model=UserRoleResponse,
+    responses={
+        **errors_list(status.HTTP_401_UNAUTHORIZED, "Auth Errors", {**JWT_ERRORS}),
+        **RATE_LIMIT_ERROR,
+        **error_response(Forbidden, "Forbidden Error"),
+        **error_response(UserNotFound, "User Not Found Error"),
+    },
+)
+@limiter.limit("10/minute")
+async def update_user_role(
+    request: Request,
+    response: Response,
+    session: AsyncSessionDep,
+    user_id: int,
+    data: UserRoleUpdateSchema,
+    current_user: User = Depends(require_role(UserRoles.ADMIN)),
+):
+    """
+    Updates the user role (available roles: user, moderator, admin)
+    """
+
+    user = await user_service.get_user_by_id(session, user_id)
+    return await user_service.update_user_role(session, user, data.role, current_user)
 
 
 @router.delete(
@@ -216,7 +248,7 @@ async def delete_user(
     """
     current_user_id = current_user.id
     user = await user_service.get_user_by_id(session, user_id)
-    await user_service.delete_user(session, redis, user)
+    await user_service.delete_user(session, redis, user, current_user)
 
     if current_user_id == user_id:
         delete_refresh_cookie(response)
