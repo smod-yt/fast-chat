@@ -1,5 +1,9 @@
+import json
+from datetime import datetime, timezone
+
 from loguru import logger
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.models import User
@@ -8,6 +12,76 @@ from src.app.models.user_model import UserRoles
 from src.app.repositories import ban_repository, token_repository, user_repository
 from src.app.schemas.ban_schema import BanUserSchema, UserBanResponse
 from src.app.utils.exceptions import Forbidden, UserAlreadyBanned, UserNotFound
+
+BAN_CACHE_PREFIX = "user_ban:"
+NEGATIVE_BAN_CACHE_TTL = 30
+MAX_BAN_CACHE_TTL = 300
+
+
+def _ban_cache_key(user_id: int) -> str:
+    return f"{BAN_CACHE_PREFIX}{user_id}"
+
+
+async def get_active_ban_cached(
+    session: AsyncSession, redis: Redis, user_id: int
+) -> dict | None:
+    key = _ban_cache_key(user_id)
+    try:
+        cached = await redis.get(key)
+        if cached is not None:
+            value = json.loads(cached)
+            if not value.get("banned"):
+                return None
+            expires_at = value.get("expires_at")
+            if expires_at is None or datetime.fromisoformat(expires_at) > datetime.now(
+                timezone.utc
+            ):
+                return value
+            await redis.delete(key)
+    except (RedisError, ValueError, AttributeError) as error:
+        logger.warning(f"Ban cache read failed for user {user_id}: {error}")
+
+    active_ban = await ban_repository.get_active_ban(session, user_id)
+    if active_ban is None:
+        payload = {"banned": False}
+        ttl = NEGATIVE_BAN_CACHE_TTL
+        result = None
+    else:
+        result = {
+            "banned": True,
+            "reason": active_ban.reason,
+            "expires_at": active_ban.expires_at.isoformat()
+            if active_ban.expires_at
+            else None,
+        }
+        payload = result
+        if active_ban.expires_at is None:
+            ttl = MAX_BAN_CACHE_TTL
+        else:
+            remaining = (active_ban.expires_at - datetime.now(timezone.utc)).total_seconds()
+            ttl = max(1, min(MAX_BAN_CACHE_TTL, int(remaining)))
+    try:
+        await redis.set(key, json.dumps(payload), ex=ttl)
+    except RedisError as error:
+        logger.warning(f"Ban cache write failed for user {user_id}: {error}")
+    return result
+
+
+async def _cache_active_ban(redis: Redis, ban: UserBan) -> None:
+    payload = {
+        "banned": True,
+        "reason": ban.reason,
+        "expires_at": ban.expires_at.isoformat() if ban.expires_at else None,
+    }
+    if ban.expires_at is None:
+        ttl = MAX_BAN_CACHE_TTL
+    else:
+        remaining = (ban.expires_at - datetime.now(timezone.utc)).total_seconds()
+        ttl = max(1, min(MAX_BAN_CACHE_TTL, int(remaining)))
+    try:
+        await redis.set(_ban_cache_key(ban.user_id), json.dumps(payload), ex=ttl)
+    except RedisError as error:
+        logger.warning(f"Ban cache update failed for user {ban.user_id}: {error}")
 
 
 async def ban_user(
@@ -52,6 +126,8 @@ async def ban_user(
         expires_at=data.expires_at,
     )
 
+    await _cache_active_ban(redis, ban)
+
     await token_repository.delete_all_user_sessions(redis, data.user_id)
     logger.info(
         f"User {target_user_id} ('{target_user_name}') was banned by admin {admin_id} ('{admin_user_name}'). "
@@ -78,6 +154,7 @@ async def get_ban_history(
 async def unban_user(
     session: AsyncSession,
     user_id: int,
+    redis: Redis,
     admin: User | None = None,
 ) -> None:
     target_user = await user_repository.get_user_by_id(session, user_id)
@@ -86,12 +163,20 @@ async def unban_user(
         logger.warning(f"Failed to unban user {user_id}{admin_info}: user not found")
         raise UserNotFound("User not found")
 
+    if target_user.role == UserRoles.ADMIN and target_user.id != (admin.id if admin else None):
+        logger.warning(f"Attempt to change ban status of admin {target_user.id}")
+        raise Forbidden("Admins cannot change another admin's status")
+
     target_user_name = target_user.user_name
     admin_info = (
         f" by admin {admin.id} ('{admin.user_name}')" if admin is not None else ""
     )
 
     revoked_ban = await ban_repository.revoke_active_ban(session, user_id)
+    try:
+        await redis.delete(_ban_cache_key(user_id))
+    except RedisError as error:
+        logger.warning(f"Ban cache invalidation failed for user {user_id}: {error}")
     if revoked_ban:
         logger.info(
             f"Active ban (ban_id={revoked_ban.id}) revoked for user {user_id} ('{target_user_name}'){admin_info}"

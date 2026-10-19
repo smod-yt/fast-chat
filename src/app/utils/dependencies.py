@@ -8,8 +8,8 @@ from loguru import logger
 from src.app.db import AsyncSessionDep
 from src.app.models import User
 from src.app.models.user_model import UserRoles
-from src.app.repositories import ban_repository, token_repository
-from src.app.services import session_service, user_service
+from src.app.repositories import token_repository
+from src.app.services import ban_service, session_service, user_service
 from src.app.utils import hash
 from src.app.utils.exceptions import (
     Forbidden,
@@ -49,25 +49,25 @@ async def get_user_id_from_jwt(
 
 
 async def get_current_user(
-    session: AsyncSessionDep, user_id: int = Depends(get_user_id_from_jwt)
+    session: AsyncSessionDep,
+    redis: RedisSessionDep,
+    user_id: int = Depends(get_user_id_from_jwt),
 ) -> User:
     user = await session.get(User, user_id)
 
     if user is None:
         raise UserNotFound("Current user not found")
 
-    active_ban = await ban_repository.get_active_ban(session, user.id)
+    active_ban = await ban_service.get_active_ban_cached(session, redis, user.id)
     if active_ban is not None:
         logger.warning(
-            f"Banned user {user.id} ('{user.user_name}') attempted to access API (ban reason: '{active_ban.reason}')"
+            f"Banned user {user.id} ('{user.user_name}') attempted to access API (ban reason: '{active_ban['reason']}')"
         )
         raise UserBanned(
             message="User is banned",
             details={
-                "reason": active_ban.reason,
-                "expires_at": (
-                    active_ban.expires_at.isoformat() if active_ban.expires_at else None
-                ),
+                "reason": active_ban["reason"],
+                "expires_at": active_ban["expires_at"],
             },
         )
 

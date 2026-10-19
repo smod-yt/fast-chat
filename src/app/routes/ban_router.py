@@ -114,11 +114,12 @@ async def unban_user(
     request: Request,
     response: Response,
     user_id: int,
+    redis: RedisSessionDep,
     session: AsyncSessionDep,
     admin: User = Depends(require_role(UserRoles.ADMIN)),
 ):
     """
     Revokes an active ban for a user
     """
-    await ban_service.unban_user(session, user_id, admin=admin)
+    await ban_service.unban_user(session, user_id, redis=redis, admin=admin)
     return
