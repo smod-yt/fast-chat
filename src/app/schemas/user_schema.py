@@ -41,8 +41,8 @@ class UserUpdateSchema(BaseModel):
 
 
 class UserUpdatePasswordSchema(BaseModel):
-    old_password: str = Field(min_length=1, max_length=60)
-    new_password: str = Field(min_length=1, max_length=60)
+    old_password: str = Field(min_length=8, max_length=60)
+    new_password: str = Field(min_length=8, max_length=60)
 
 
 class UserRoleUpdateSchema(BaseModel):
@@ -54,4 +54,3 @@ class UserRoleResponse(BaseModel):
     role: UserRoles
 
     model_config = ConfigDict(from_attributes=True)
-
