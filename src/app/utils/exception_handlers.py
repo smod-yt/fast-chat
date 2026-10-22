@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from loguru import logger
 from redis.exceptions import RedisError
@@ -32,6 +33,30 @@ def error_response(
 
 
 def register_exception_handlers(app: FastAPI):
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ):
+        details = []
+        for validation_error in exc.errors():
+            location = validation_error.get("loc", ())
+            details.append(
+                {
+                    "field": str(location[-1]) if location else "",
+                    "type": validation_error.get("type", ""),
+                    "message": validation_error.get("msg", ""),
+                    "context": validation_error.get("ctx", {}),
+                    "input": validation_error.get("input"),
+                }
+            )
+
+        return error_response(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "VALIDATION_ERROR",
+            "Request validation failed",
+            details,
+        )
+
     @app.exception_handler(BaseAppException)
     async def app_exception_handler(request: Request, exc: BaseAppException):
         return error_response(exc.status_code, exc.error_code, exc.message, exc.details)
