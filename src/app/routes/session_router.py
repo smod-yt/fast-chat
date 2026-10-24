@@ -16,6 +16,7 @@ from src.app.utils.dependencies import (
 from src.app.utils.errors import (
     JWT_ERRORS,
     RATE_LIMIT_ERROR,
+    REQUEST_ERRORS,
     SESSION_ERRORS,
     error_example,
     error_response,
@@ -41,6 +42,7 @@ def delete_refresh_cookie(response: Response):
     status_code=status.HTTP_200_OK,
     response_model=dict[UUID, SessionReadSchema],
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
@@ -75,6 +77,7 @@ async def get_sessions(
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
@@ -108,6 +111,7 @@ async def logout(
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(status.HTTP_401_UNAUTHORIZED, "Auth Errors", {**JWT_ERRORS}),
         **RATE_LIMIT_ERROR,
         **error_response(UserNotFound, "Current User Not Found Error"),
@@ -136,6 +140,7 @@ async def logout_all(
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",

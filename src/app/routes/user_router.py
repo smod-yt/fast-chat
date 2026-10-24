@@ -24,6 +24,7 @@ from src.app.utils.dependencies import (
 from src.app.utils.errors import (
     JWT_ERRORS,
     RATE_LIMIT_ERROR,
+    REQUEST_ERRORS,
     SESSION_ERRORS,
     error_example,
     error_response,
@@ -54,6 +55,7 @@ def delete_refresh_cookie(response: Response):
     status_code=status.HTTP_200_OK,
     response_model=PaginatedUsersResponse,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
@@ -92,6 +94,7 @@ async def get_users(
     status_code=status.HTTP_200_OK,
     response_model=UserResponse,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
@@ -121,6 +124,7 @@ async def get_user_by_id(
     status_code=status.HTTP_200_OK,
     response_model=UserResponse,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
@@ -156,6 +160,7 @@ async def update_user(
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
@@ -194,6 +199,7 @@ async def update_user_password(
     status_code=status.HTTP_200_OK,
     response_model=UserRoleResponse,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(status.HTTP_401_UNAUTHORIZED, "Auth Errors", {**JWT_ERRORS}),
         **RATE_LIMIT_ERROR,
         **error_response(Forbidden, "Forbidden Error"),
@@ -222,6 +228,7 @@ async def update_user_role(
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",

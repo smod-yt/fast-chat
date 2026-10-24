@@ -39,7 +39,7 @@ def custom_error_response(
     error_code: str,
     description: str | None = None,
     message: str | None = None,
-    details: dict[str, Any] | None = None,
+    details: Any = None,
 ):
     return {
         status_code: {
@@ -95,6 +95,32 @@ RATE_LIMIT_ERROR = custom_error_response(
         "retry_after": 0,
     },
 )
+
+BAD_REQUEST_ERROR = custom_error_response(
+    status.HTTP_400_BAD_REQUEST,
+    error_code="BAD_REQUEST",
+    description="Bad Request Error",
+    message="Invalid JSON format",
+    details="string",
+)
+
+VALIDATION_ERROR = custom_error_response(
+    status.HTTP_422_UNPROCESSABLE_ENTITY,
+    error_code="VALIDATION_ERROR",
+    description="Request Validation Error",
+    message="Request validation failed",
+    details=[
+        {
+            "field": "string",
+            "type": "string",
+            "message": "string",
+            "context": {},
+            "input": "any",
+        }
+    ],
+)
+
+REQUEST_ERRORS = {**BAD_REQUEST_ERROR, **VALIDATION_ERROR}
 
 JWT_ERRORS = {
     **error_example(JWTExpired, "JWT Expired Error"),

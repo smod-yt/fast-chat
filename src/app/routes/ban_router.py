@@ -10,6 +10,7 @@ from src.app.utils.dependencies import RedisSessionDep, require_role
 from src.app.utils.errors import (
     JWT_ERRORS,
     RATE_LIMIT_ERROR,
+    REQUEST_ERRORS,
     error_response,
     errors_list,
 )
@@ -32,6 +33,7 @@ router = APIRouter(
     status_code=status.HTTP_201_CREATED,
     response_model=UserBanResponse,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
@@ -69,6 +71,7 @@ async def ban_user(
     status_code=status.HTTP_200_OK,
     response_model=list[UserBanResponse],
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
@@ -99,6 +102,7 @@ async def get_ban_history(
     status_code=status.HTTP_204_NO_CONTENT,
     response_model=None,
     responses={
+        **REQUEST_ERRORS,
         **errors_list(
             status.HTTP_401_UNAUTHORIZED,
             "Auth Errors",
