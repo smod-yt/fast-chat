@@ -37,12 +37,33 @@ def register_exception_handlers(app: FastAPI):
     async def validation_exception_handler(
         request: Request, exc: RequestValidationError
     ):
+        errors = exc.errors()
+
+        is_json_invalid = any(
+            err.get("type") in ("json_invalid", "json_type") for err in errors
+        )
+
+        if is_json_invalid:
+            json_error_msg = (
+                errors[0].get("ctx", {}).get("error", "Invalid JSON format")
+            )
+
+            return error_response(
+                status.HTTP_400_BAD_REQUEST,
+                "BAD_REQUEST",
+                "Invalid JSON format",
+                json_error_msg,
+            )
+
+        excepted_locs = ("body",)
         details = []
-        for validation_error in exc.errors():
+        for validation_error in errors:
             location = validation_error.get("loc", ())
             details.append(
                 {
-                    "field": str(location[-1]) if location else "",
+                    "field": ".".join(
+                        str(loc) for loc in location if loc not in excepted_locs
+                    ),
                     "type": validation_error.get("type", ""),
                     "message": validation_error.get("msg", ""),
                     "context": validation_error.get("ctx", {}),
