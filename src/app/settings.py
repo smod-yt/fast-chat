@@ -30,8 +30,6 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_KEY: str
     REFRESH_EXPIRES_TIME: int = 3600 * 24 * 7
 
-    MAXMIND_LICENSE_KEY: str
-
     @property
     def POSTGRES_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

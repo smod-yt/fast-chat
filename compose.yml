@@ -1,101 +1,31 @@
+name: fastchat
+
 services:
-  postgres:
-    image: postgres:18-alpine
-    container_name: postgres
-    restart: unless-stopped
-    networks:
-      - app-network
-    env_file:
-      - .env
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:8-alpine
-    container_name: redis
-    restart: unless-stopped
-    networks:
-      - app-network
-    env_file:
-      - .env
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    command: >
-      redis-server
-      --requirepass "${REDIS_PASSWORD}"
-      --appendonly yes
-      --appendfsync everysec
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   migrate:
-    build: .
+    image: ${APP_IMAGE:-fastchat:local}
     command: alembic upgrade head
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - app-network
     env_file:
       - .env
-    environment:
-      - POSTGRES_HOST=postgres
-      - REDIS_HOST=redis
-
-  geoip-updater:
-    image: crazymax/geoip-updater:latest
-    volumes:
-      - .:/data
-    environment:
-      - EDITION_IDS=GeoLite2-City
-      - LICENSE_KEY=${MAXMIND_LICENSE_KEY}
-      - DOWNLOAD_PATH=/data
-      - LOG_LEVEL=info
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   app:
-    build: .
-    container_name: app
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    image: ${APP_IMAGE:-fastchat:local}
     restart: unless-stopped
     ports:
       - "8000:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
-      geoip-updater:
-        condition: service_completed_successfully
-    networks:
-      - app-network
     env_file:
       - .env
-    environment:
-      - POSTGRES_HOST=postgres
-      - REDIS_HOST=redis
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
-      - ./src:/app/src
-      - ./tests:/app/tests
-      - ./alembic.ini:/app/alembic.ini
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./requirements.txt:/app/requirements.txt
-      - ./GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb
-
-volumes:
-  postgres_data:
-  redis_data:
-
-networks:
-  app-network:
+      - ./GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/openapi.json', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
