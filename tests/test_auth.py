@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import pytest
 from httpx import AsyncClient
-from pytest_freezer import freezer
 
 from src.app.schemas.auth_schema import (
     AccessTokenSchema,

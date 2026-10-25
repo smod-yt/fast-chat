@@ -1,7 +1,7 @@
 import asyncio
 from logging.config import fileConfig
 
-import alembic_postgresql_enum
+import alembic_postgresql_enum  # noqa: F401  (registers the enum plugin)
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -20,10 +20,10 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel  # noqa: E402
 
-from src.app.models import *
-from src.app.settings import settings
+from src.app.models import *  # noqa: E402, F403
+from src.app.settings import settings  # noqa: E402
 
 target_metadata = SQLModel.metadata
 

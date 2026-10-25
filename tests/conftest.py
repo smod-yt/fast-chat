@@ -13,8 +13,8 @@ from sqlalchemy import text
 
 from src.app.db import AsyncSessionLocal
 from src.main import app
-from tests.factories import *
-from tests.fixtures import *
+from tests.factories import *  # noqa: F403
+from tests.fixtures import *  # noqa: F403
 
 BASE_DIR = Path(__file__).resolve().parent.parent / "src"
 

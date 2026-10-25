@@ -34,7 +34,6 @@ async def refresh_token(client: AsyncClient):
         "/auth/register",
         json={"name": name, "user_name": user_name, "password": "password"},
     )
-    content = response.json()
 
     assert response.status_code == 201
 

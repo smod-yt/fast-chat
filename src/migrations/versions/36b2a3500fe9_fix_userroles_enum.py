@@ -8,8 +8,6 @@ Create Date: 2026-09-25 20:55:36.224121
 
 from typing import Sequence, Union
 
-import sqlalchemy as sa
-import sqlmodel
 from alembic import op
 from alembic_postgresql_enum import TableReference
 

@@ -17,7 +17,6 @@ from src.app.utils.errors import (
 from src.app.utils.exceptions import (
     Forbidden,
     UserAlreadyBanned,
-    UserBanned,
     UserNotFound,
 )
 

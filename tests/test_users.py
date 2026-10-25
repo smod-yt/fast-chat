@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-import pytest
 from httpx import AsyncClient
 
 from src.app.schemas.auth_schema import AccessTokenSchema, AuthResponse
