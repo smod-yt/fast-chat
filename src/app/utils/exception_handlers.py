@@ -12,6 +12,16 @@ from sqlalchemy.exc import InterfaceError, OperationalError
 from src.app.utils.exceptions import BaseAppException
 
 
+def json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
+
+
 def error_response(
     status_code: status,
     code: str,
@@ -52,7 +62,7 @@ def register_exception_handlers(app: FastAPI):
                 status.HTTP_400_BAD_REQUEST,
                 "BAD_REQUEST",
                 "Invalid JSON format",
-                json_error_msg,
+                json_safe(json_error_msg),
             )
 
         excepted_locs = ("body",)
@@ -66,8 +76,8 @@ def register_exception_handlers(app: FastAPI):
                     ),
                     "type": validation_error.get("type", ""),
                     "message": validation_error.get("msg", ""),
-                    "context": validation_error.get("ctx", {}),
-                    "input": validation_error.get("input"),
+                    "context": json_safe(validation_error.get("ctx", {})),
+                    "input": json_safe(validation_error.get("input")),
                 }
             )
 
