@@ -91,6 +91,46 @@ async def test_get_user_by_id_not_found(client: AsyncClient, user_factory):
     assert response.json()["error"]["code"] == "USER_NOT_FOUND"
 
 
+async def test_get_me_success(client: AsyncClient, user_factory):
+    user, _ = await user_factory()
+
+    response = await client.get(
+        "/users/me",
+        headers=auth_header(user.access_token),
+    )
+    assert response.status_code == 200
+    data = validate_response(response, UserResponse)
+    assert data.id == user.user.id
+    assert data.name == user.user.name
+    assert data.user_name == user.user.user_name
+    assert "password" not in response.json()
+
+
+async def test_get_me_unauthorized(client: AsyncClient):
+    response = await client.get("/users/me")
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "JWT_NOT_GRANTED"
+
+
+async def test_get_me_banned(client: AsyncClient, admin_factory, user_factory):
+    admin, _ = await admin_factory()
+    user, _ = await user_factory()
+
+    ban_resp = await client.post(
+        "/bans/users",
+        json={"user_id": user.user.id, "reason": "Terms violation"},
+        headers=auth_header(admin.access_token),
+    )
+    assert ban_resp.status_code == 201
+
+    response = await client.get(
+        "/users/me",
+        headers=auth_header(user.access_token),
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "USER_BANNED"
+
+
 async def test_update_user_within_24h_forbidden(client: AsyncClient, user_factory):
     user1, _ = await user_factory()
 

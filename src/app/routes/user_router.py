@@ -35,6 +35,7 @@ from src.app.utils.exceptions import (
     Forbidden,
     InvalidCredentials,
     SessionTooEarly,
+    UserBanned,
     UserNotFound,
 )
 
@@ -48,6 +49,34 @@ def delete_refresh_cookie(response: Response):
         secure=settings.HTTPS,
         samesite="lax",
     )
+
+
+@router.get(
+    "/me",
+    status_code=status.HTTP_200_OK,
+    response_model=UserResponse,
+    responses={
+        **REQUEST_ERRORS,
+        **errors_list(
+            status.HTTP_401_UNAUTHORIZED,
+            "Auth Errors",
+            {**JWT_ERRORS},
+        ),
+        **RATE_LIMIT_ERROR,
+        **error_response(UserBanned, "User Banned Error"),
+        **error_response(UserNotFound, "Current User Not Found Error"),
+    },
+)
+@limiter.limit("60/minute")
+async def get_me(
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Returns the currently authenticated user's profile
+    """
+    return current_user
 
 
 @router.get(
