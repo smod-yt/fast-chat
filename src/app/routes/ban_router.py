@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from src.app.db import AsyncSessionDep
 from src.app.models import User
 from src.app.models.user_model import UserRoles
-from src.app.schemas.ban_schema import BanUserSchema, UserBanResponse
+from src.app.schemas.ban_schema import (
+    BanUserSchema,
+    PaginatedBanHistoryResponse,
+    UserBanResponse,
+)
 from src.app.services import ban_service
 from src.app.utils import limiter
 from src.app.utils.dependencies import RedisSessionDep, require_role
@@ -68,7 +72,7 @@ async def ban_user(
 @router.get(
     "/users/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=list[UserBanResponse],
+    response_model=PaginatedBanHistoryResponse,
     responses={
         **REQUEST_ERRORS,
         **errors_list(
@@ -87,13 +91,22 @@ async def get_ban_history(
     response: Response,
     user_id: int,
     session: AsyncSessionDep,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1, le=100),
     admin: User = Depends(require_role(UserRoles.ADMIN)),
 ):
     """
-    Returns ban history for a user
+    Returns paginated ban history for a user
     """
-    bans = await ban_service.get_ban_history(session, user_id)
-    return bans
+    bans, total = await ban_service.get_ban_history(
+        session, user_id, page=page, limit=limit
+    )
+    return PaginatedBanHistoryResponse(
+        items=bans,
+        total=total,
+        page=page,
+        limit=limit,
+    )
 
 
 @router.delete(

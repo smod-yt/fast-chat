@@ -140,15 +140,21 @@ async def ban_user(
 async def get_ban_history(
     session: AsyncSession,
     user_id: int,
-) -> list[UserBan]:
+    page: int = 1,
+    limit: int = 10,
+) -> tuple[list[UserBan], int]:
     target_user = await user_repository.get_user_by_id(session, user_id)
     if target_user is None:
         logger.warning(f"Failed to get ban history: user {user_id} not found")
         raise UserNotFound("User not found")
 
-    bans = await ban_repository.get_user_bans(session, user_id)
-    logger.debug(f"Retrieved {len(bans)} ban record(s) for user {user_id}")
-    return bans
+    bans, total = await ban_repository.get_user_bans(
+        session, user_id, page=page, limit=limit
+    )
+    logger.debug(
+        f"Retrieved {len(bans)} of {total} ban record(s) for user {user_id}"
+    )
+    return bans, total
 
 
 async def unban_user(

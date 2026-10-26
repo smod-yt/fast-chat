@@ -20,3 +20,10 @@ class UserBanResponse(BaseModel):
     revoked_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class PaginatedBanHistoryResponse(BaseModel):
+    items: list[UserBanResponse]
+    total: int
+    page: int
+    limit: int

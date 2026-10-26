@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from loguru import logger
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import or_, select
 
@@ -52,14 +53,24 @@ async def create_ban(
     return ban
 
 
-async def get_user_bans(session: AsyncSession, user_id: int) -> list[UserBan]:
+async def get_user_bans(
+    session: AsyncSession,
+    user_id: int,
+    page: int = 1,
+    limit: int = 10,
+) -> tuple[list[UserBan], int]:
+    count_statement = select(func.count(UserBan.id)).where(UserBan.user_id == user_id)
+    total = (await session.execute(count_statement)).scalar_one()
+
     statement = (
         select(UserBan)
         .where(UserBan.user_id == user_id)
         .order_by(UserBan.created_at.desc(), UserBan.id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
     )
     result = await session.execute(statement)
-    return list(result.scalars().all())
+    return list(result.scalars().all()), total
 
 
 async def revoke_active_ban(session: AsyncSession, user_id: int) -> UserBan | None:

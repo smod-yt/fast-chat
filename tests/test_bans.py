@@ -3,7 +3,10 @@ from datetime import datetime, timedelta, timezone
 from httpx import AsyncClient
 
 from src.app.schemas.auth_schema import AuthResponse
-from src.app.schemas.ban_schema import UserBanResponse
+from src.app.schemas.ban_schema import (
+    PaginatedBanHistoryResponse,
+    UserBanResponse,
+)
 from tests.utils import auth_header, validate_response
 
 
@@ -257,10 +260,13 @@ async def test_multiple_bans_displayed_in_history(
         headers=auth_header(admin.access_token),
     )
     assert history_resp.status_code == 200
-    history = history_resp.json()
-    assert len(history) == 2
+    history = validate_response(history_resp, PaginatedBanHistoryResponse)
+    assert history.total == 2
+    assert len(history.items) == 2
+    assert history.page == 1
+    assert history.limit == 10
 
-    reasons = [ban["reason"] for ban in history]
+    reasons = [ban.reason for ban in history.items]
     assert "First warning ban" in reasons
     assert "Second permanent ban" in reasons
 
@@ -290,3 +296,71 @@ async def test_ban_endpoints_user_not_found(client: AsyncClient, admin_factory):
     )
     assert resp_delete.status_code == 404
     assert resp_delete.json()["error"]["code"] == "USER_NOT_FOUND"
+
+
+async def test_ban_history_pagination(
+    client: AsyncClient, admin_factory, user_factory
+):
+    admin, _ = await admin_factory()
+    user, _ = await user_factory()
+
+    for reason in ("First", "Second", "Third"):
+        resp_ban = await client.post(
+            "/bans/users",
+            json={"user_id": user.user.id, "reason": reason},
+            headers=auth_header(admin.access_token),
+        )
+        assert resp_ban.status_code == 201
+
+        if reason != "Third":
+            resp_revoke = await client.delete(
+                f"/bans/users/{user.user.id}",
+                headers=auth_header(admin.access_token),
+            )
+            assert resp_revoke.status_code == 204
+
+    first_page_resp = await client.get(
+        f"/bans/users/{user.user.id}",
+        params={"page": 1, "limit": 2},
+        headers=auth_header(admin.access_token),
+    )
+    assert first_page_resp.status_code == 200
+    first_page = validate_response(first_page_resp, PaginatedBanHistoryResponse)
+    assert first_page.total == 3
+    assert first_page.page == 1
+    assert first_page.limit == 2
+    assert len(first_page.items) == 2
+    assert [ban.reason for ban in first_page.items] == ["Third", "Second"]
+
+    second_page_resp = await client.get(
+        f"/bans/users/{user.user.id}",
+        params={"page": 2, "limit": 2},
+        headers=auth_header(admin.access_token),
+    )
+    assert second_page_resp.status_code == 200
+    second_page = validate_response(second_page_resp, PaginatedBanHistoryResponse)
+    assert second_page.total == 3
+    assert second_page.page == 2
+    assert second_page.limit == 2
+    assert len(second_page.items) == 1
+    assert second_page.items[0].reason == "First"
+
+
+async def test_ban_history_pagination_query_validation(
+    client: AsyncClient, admin_factory, user_factory
+):
+    admin, _ = await admin_factory()
+    user, _ = await user_factory()
+
+    invalid_params = (
+        {"page": 0},
+        {"limit": 0},
+        {"limit": 101},
+    )
+    for params in invalid_params:
+        response = await client.get(
+            f"/bans/users/{user.user.id}",
+            params=params,
+            headers=auth_header(admin.access_token),
+        )
+        assert response.status_code == 422
