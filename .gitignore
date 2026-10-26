@@ -19,6 +19,8 @@ ENV/
 htmlcov/
 .nox/
 .tox/
+.ruff_cache
+.kilo
 
 .vscode/
 .idea/
