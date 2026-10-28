@@ -6,6 +6,7 @@ from sqlmodel import select
 
 from src.app.models import User
 from src.app.models.user_model import UserRoles
+from src.app.repositories import chat_repository
 from src.app.settings import settings
 from src.app.utils.exceptions import Conflict
 from src.app.utils.hash import hash_password
@@ -35,6 +36,8 @@ async def create_first_admin_if_not_exists(session: AsyncSession):
         )
 
         session.add(first_admin)
+        await session.flush()
+        await chat_repository.create_default_chats(session, first_admin.id)
         await session.commit()
         logger.info(f"The first admin ({admin_user_name}) successfully created")
     except IntegrityError:

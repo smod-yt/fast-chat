@@ -4,9 +4,9 @@ English | [Русский](README.ru.md)
 
 FastChat is an asynchronous messenger backend built with FastAPI. It currently
 covers the account layer: registration and login, JWT access tokens with rotating
-refresh sessions, user profiles and roles, session management, and
-administrator-driven bans. It is an educational pet project and an MVP backend;
-chats and messages are not implemented yet.
+refresh sessions, user profiles and roles, session management,
+administrator-driven bans, and chats. It is an educational pet project and an MVP
+backend; messages are not implemented yet.
 
 **Contents:** [Features](#features) · [Tech stack](#tech-stack) · [Quick start](#quick-start) · [Requirements](#requirements) · [Local development](#local-development) · [Configuration](#configuration) · [Architecture](#architecture) · [API](#api) · [Tests](#tests) · [CI](#ci) · [Production](#production) · [Project structure](#project-structure) · [Limitations](#limitations) · [Troubleshooting](#troubleshooting) · [License](#license)
 
@@ -30,7 +30,11 @@ checks a Redis-cached active ban; admins cannot ban admins.
 validation, limits, Redis/DB outages, and unexpected failures; CORS, Loguru
 logging, optional GeoIP, integration tests, CI.
 
-**Not implemented:** chats, messages, WebSocket/realtime.
+**Chats.** Private dialogs and per-user system chats (saved messages and system
+notifications) created on registration; list own chats, moderator access to
+others' chats, owner/moderator updates, owner/admin deletion.
+
+**Not implemented:** messages, WebSocket/realtime.
 
 ## Tech stack
 

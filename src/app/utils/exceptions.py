@@ -21,6 +21,18 @@ class Conflict(BaseAppException):
     default_message = "Conflict"
 
 
+class BadRequest(BaseAppException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    error_code = "BAD_REQUEST"
+    default_message = "Bad request"
+
+
+class ChatNotFound(BaseAppException):
+    status_code = status.HTTP_404_NOT_FOUND
+    error_code = "CHAT_NOT_FOUND"
+    default_message = "Chat not found"
+
+
 class Forbidden(BaseAppException):
     status_code = status.HTTP_403_FORBIDDEN
     error_code = "FORBIDDEN"

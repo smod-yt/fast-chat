@@ -54,6 +54,8 @@ async def clear_db(app_lifespan):
     async with AsyncSessionLocal() as session:
         await session.execute(text("""
             TRUNCATE TABLE
+                chat_participants,
+                chats,
                 users
             RESTART IDENTITY
             CASCADE

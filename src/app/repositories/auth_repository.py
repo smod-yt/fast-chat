@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.models import User
+from src.app.repositories import chat_repository
 from src.app.utils.exceptions import Conflict, InvalidCredentials
 
 
@@ -14,6 +15,8 @@ async def register(
 
     try:
         session.add(new_user)
+        await session.flush()
+        await chat_repository.create_default_chats(session, new_user.id)
         await session.commit()
         await session.refresh(new_user)
         logger.info(
